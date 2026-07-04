@@ -279,28 +279,29 @@ def _build_scope():
     root = _ob("ScopeRoot")
     if root is None:
         root = _link(bpy.data.objects.new(PREFIX + "ScopeRoot", None))
-    root.location = (-3.9, 0.9, 0.85)
+    root.location = (-3.9, 0.9, 1.15)
     root.rotation_euler = (0.0, 0.0, math.radians(48.0))  # face the bench camera
 
-    body = _box("ScopeBody", (3.05, 0.24, 2.05), (0, 0.14, 0),
+    body = _box("ScopeBody", (3.05, 0.24, 4.40), (0, 0.14, 0),
                 _principled("MatScopeBody", (0.10, 0.10, 0.11), rough=0.55))
     body.parent = root
     screen = _pydata_obj("ScopeScreen",
-                         [(-1.4, 0, -0.9), (1.4, 0, -0.9),
-                          (1.4, 0, 0.9), (-1.4, 0, 0.9)],
+                         [(-1.4, 0, -2.1), (1.4, 0, -2.1),
+                          (1.4, 0, 2.1), (-1.4, 0, 2.1)],
                          [(0, 1, 2, 3)])
     screen.parent = root
     screen.data.materials.append(
         _principled("MatScreen", (0.008, 0.02, 0.012), rough=0.4))
 
-    # graticule: one curve object, many 2-point splines
+    # graticule: 10 rows. Top 5 = input, -20..+5 V at 5 V/div; bottom 5 =
+    # output, auto-ranged 0-300 or 0-500 V (see _push_traces/_upd_bplus).
     cu = bpy.data.curves.new(PREFIX + "Graticule", 'CURVE')
     cu.dimensions = '3D'
     cu.bevel_depth = 0.004
-    lines = [((x, -0.01, -0.85), (x, -0.01, 0.85))
+    lines = [((x, -0.01, -2.05), (x, -0.01, 2.05))
              for x in np.arange(-1.2, 1.21, 0.4)]
     lines += [((-1.35, -0.01, z), (1.35, -0.01, z))
-              for z in np.arange(-0.8, 0.81, 0.4)]
+              for z in np.arange(-2.0, 2.01, 0.4)]
     for a, b in lines:
         sp = cu.splines.new('POLY')
         sp.points.add(1)
@@ -321,12 +322,24 @@ def _build_scope():
         tr.data.materials.append(_emission(matname, color, 4.0))
 
     rot_txt = (math.radians(90), 0, 0)
-    _text("ScopeLblIn", "IN Vg  8 V/div", 0.14, (-1.35, -0.03, 0.98), rot_txt,
-          _emission("MatTraceIn", (0.2, 1.0, 0.3), 4.0), parent=root)
-    _text("ScopeLblOut", "OUT Vp  100 V/div", 0.14, (0.12, -0.03, 0.98), rot_txt,
-          _emission("MatTraceOut", (1.0, 0.6, 0.12), 4.0), parent=root)
-    _text("ScopeGain", "GAIN --", 0.17, (0.52, -0.03, -1.12), rot_txt,
-          _emission("MatTraceOut", (1.0, 0.6, 0.12), 4.0), parent=root)
+    green = _emission("MatTraceIn", (0.2, 1.0, 0.3), 4.0)
+    amber = _emission("MatTraceOut", (1.0, 0.6, 0.12), 4.0)
+    _text("ScopeLblIn", "IN Vg  5 V/div", 0.13, (-1.35, -0.03, 2.18), rot_txt,
+          green, parent=root)
+    _text("ScopeGain", "GAIN --", 0.15, (-0.42, -0.03, 2.18), rot_txt,
+          amber, parent=root)
+    _text("ScopeLblOut", "OUT Vp  100 V/div", 0.13, (0.42, -0.03, 2.18), rot_txt,
+          amber, parent=root)
+    # axis markers, left column (clear of the tube from the bench camera);
+    # the shared center line is IN -20 V and OUT 500 V
+    _text("ScopeMkInHi", "+5V", 0.10, (-1.36, -0.02, 1.84), rot_txt,
+          green, parent=root)
+    _text("ScopeMkInLo", "-20V", 0.10, (-1.36, -0.02, 0.06), rot_txt,
+          green, parent=root)
+    _text("ScopeMkOutHi", "500V", 0.10, (-1.36, -0.02, -0.20), rot_txt,
+          amber, parent=root)
+    _text("ScopeMkOutLo", "0V", 0.10, (-1.36, -0.02, -1.97), rot_txt,
+          amber, parent=root)
 
 
 # resistor color code, digits 0-9
@@ -356,6 +369,13 @@ def _upd_bplus(self, context):
     ob = _ob("PSUVal")
     if ob:
         ob.data.body = f"{self.amp_bplus:.0f} V"
+    # OUT channel auto-range: 0-300 V below 300 V B+, 0-500 V above
+    vmax = 300 if self.amp_bplus <= 300.0 else 500
+    for name, want in (("ScopeLblOut", f"OUT Vp  {vmax // 5} V/div"),
+                       ("ScopeMkOutHi", f"{vmax}V")):
+        t = _ob(name)
+        if t and t.data.body != want:
+            t.data.body = want
 
 
 def _build_bench():
@@ -413,7 +433,8 @@ def _build_bench():
                        (2.95, 0.35, -0.60)],
         "WirePSUGnd": [(3.45, 0.35, -0.62), (3.45, 0.35, -2.35),
                        (1.68, 0.20, -2.35), (1.62, 0.20, -2.05)],
-        "WireGenGrid": [(-2.78, -0.80, -0.85), (-2.78, -0.80, 1.75),
+        "WireGenGrid": [(-2.78, -0.80, -0.85), (-2.78, -0.80, -0.55),
+                        (-1.55, -0.95, -0.55), (-1.55, -0.95, 1.75),
                         (-0.45, 0.0, 1.75), (-0.45, 0.0, 1.42)],
         "WireGenGnd": [(-3.22, -0.80, -0.85), (-3.22, -0.80, -2.35),
                        (-1.68, -0.20, -2.35), (-1.62, -0.20, -2.05)],
@@ -619,20 +640,24 @@ def _push_draw():
 def _push_traces():
     """Write the rolling Vg/Vp buffers into the two scope trace curves.
 
-    Per-channel scales like a real scope (graticule div = 0.4 units):
-    IN 8 V/div, OUT 100 V/div; the on-screen GAIN readout carries the ratio.
+    Absolute scales on a 10-division screen (div = 0.4 units):
+    IN  top half, 5 V/div, covering -20..+5 V (0 V ref on the +1.6 line);
+    OUT bottom half auto-ranges with B+: 0-300 V (60 V/div) when B+ <= 300,
+    else 0-500 V (100 V/div). 0 V is the bottom line; the bands meet at the
+    center line. _upd_bplus() keeps the on-screen labels in step.
     """
     bp = float(getattr(_scene(), "amp_bplus", 300.0))
-    for name, buf, z0, upv, center in (
-            ("TraceIn", _S["vg_buf"], 0.42, 0.05, 0.0),        # 8 V/div
-            ("TraceOut", _S["vp_buf"], -0.38, 0.004, bp / 2)):  # 100 V/div
+    out_vmax = 300.0 if bp <= 300.0 else 500.0
+    for name, buf, z0, upv, lo, hi in (
+            ("TraceIn", _S["vg_buf"], 1.6, 0.08, 0.0, 2.0),           # 5 V/div
+            ("TraceOut", _S["vp_buf"], -2.0, 2.0 / out_vmax, -2.0, 0.0)):
         ob = _ob(name)
         if ob is None:
             continue
         arr = np.empty((SCOPE_N, 4), np.float32)
         arr[:, 0] = SCOPE_XS
         arr[:, 1] = -0.02
-        arr[:, 2] = z0 + np.clip((buf - center) * upv, -0.38, 0.38)
+        arr[:, 2] = np.clip(z0 + buf * upv, lo, hi)
         arr[:, 3] = 1.0
         sp = ob.data.splines[0]
         sp.points.foreach_set("co", arr.ravel())
@@ -982,7 +1007,7 @@ def register_ui():
     _cam("Cam_Top", (0, 0, 1.30), ortho=2.7, clip=0.003)
     _cam("Cam_Inside", (0.52, 0.52, 0.05), target=(-0.1, -0.1, 0.0),
          lens=13.0, clip=0.004)
-    _cam("Cam_Over", (6.4, -7.4, 3.4), target=(-0.1, 0.15, 0.0), lens=38.0)
+    _cam("Cam_Over", (6.6, -7.6, 3.6), target=(-0.25, 0.2, 0.25), lens=34.0)
     _scene().camera = _ob("Cam_Over")
 
     if not _ob("Meter"):

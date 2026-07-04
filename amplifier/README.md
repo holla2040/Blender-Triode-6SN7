@@ -38,10 +38,13 @@ operating point, gain, phase inversion, cutoff and saturation clipping —
 | Signal amplitude | 0–8 Vpk | Small = clean amplification; large = clipping both ways. |
 | Grid bias / DC offset | −15…+5 V | The operating point. −4 V ≈ class-A center; −12 V ≈ beyond cutoff (class-C-ish); 0 V+ → grid current. |
 
-The **oscilloscope** shows the green input (8 V/div) and the amber output
-(100 V/div, centered on B+/2) with the measured **GAIN** readout on the
-bezel — note the output is **inverted** (common-cathode stage). The meter
-under the tube shows B+, Vp, Ip, Vg, and gain, all KVL-consistent:
+The **oscilloscope** has a 10-division screen split at the center line:
+top half is the green input at **5 V/div covering −20…+5 V** (the full bias
+slider range); the amber output **auto-ranges with B+** — 0–300 V
+(60 V/div) when B+ ≤ 300 V, 0–500 V (100 V/div) above — so the waveform
+always uses the screen well and neither trace can run off screen. The measured **GAIN** shows top-center —
+note the output is **inverted** (common-cathode stage). The meter under the
+tube shows B+, Vp, Ip, Vg, and gain, all KVL-consistent:
 `B+ − Vp = Ip·R_L` always checks out.
 
 ## Experiments for students
@@ -51,7 +54,8 @@ under the tube shows B+, Vp, Ip, Vg, and gain, all KVL-consistent:
    glide onto ~140 V as the electron stream builds: the load line solving
    itself. Verify Ohm's law from the meter numbers.
 3. **Gain**: amplitude 1 V → output ~13× bigger, inverted. Confirm with the
-   graticule: input ~¼ div, output ~1.3 div at the posted V/div.
+   graticule: input swings 0.4 div at 5 V/div, output ~0.26 div at
+   100 V/div → (0.26·100)/(0.4·5) ≈ 13.
 4. **Bias classes**: drag DC offset to −12 V (output only on positive input
    peaks) then toward 0 V (grid-current sparkle on the wires; top of the
    swing compresses).
