@@ -730,6 +730,16 @@ def _step(scene):
 
     r_all = np.hypot(p[:, 0], p[:, 1])
     cloud = int(np.count_nonzero(al & (r_all < CLOUD_R)))
+    if cloud > CLOUD_CAP and S["ip"] + S.get("ig2", 0.0) < 1.0:
+        # TRUE space-charge lockup: cloud at cap with zero throughput means
+        # emission stays gated (lam *= 1-cf) and the trapped electrons can
+        # never drain past the grid-wire barrier -- the tube latches dead.
+        # Reclaim them into the cathode to break the latch. A full cloud
+        # WITH current flowing is normal space-charge-limited operation and
+        # is deliberately left alone.
+        idx = np.flatnonzero(al & (r_all < CLOUD_R))
+        al[idx[:int(cloud - CLOUD_CAP) + 25]] = False
+        cloud = int(CLOUD_CAP)
     cf = min(cloud / CLOUD_CAP, 1.2)
 
     # --- the circuit. SELF-BIAS: plate current through Rk lifts the cathode,
@@ -767,10 +777,19 @@ def _step(scene):
     # instantaneous drive would Jensen-bias K upward on every driven run)
     ip_dc, vk_dc, vp_dc = _solve_ip(scene.cbamp_sig_dc)
     d_dc = max(0.0, (scene.cbamp_sig_dc - vk_dc) + vp_dc / MU - V_SC * cf)
-    if d_dc > 1.0 and S["ip_loop"] > 5.0 and emis > 0.2:
+    # Down-corrections are always allowed: if khat is stuck too high after
+    # a starved transient, the solver holds a starved op point, the healthy-
+    # drive gate would stay closed, and the wrong khat could never heal.
+    if emis > 0.2 and d_dc > 0.5:
         k_inst = S["ip_loop"] / (emis * d_dc ** 1.5)
-        a = 0.15 if S["khat"] < 0.7 * k_inst else K_ALPHA
-        S["khat"] += a * (k_inst - S["khat"])
+        # down-corrections fire ONLY on the lockup signature (cloud pinned
+        # at cap): during warmup ramps the current lags the drive through
+        # the transit delay, so k_inst reads low and would wrongly hammer
+        # khat down; a filling (sub-cap) cloud means warmup, not lockup
+        down_ok = k_inst < S["khat"] and cloud >= CLOUD_CAP - 25
+        if down_ok or (d_dc > 1.0 and S["ip_loop"] > 5.0):
+            a = 0.15 if S["khat"] < 0.7 * k_inst else K_ALPHA
+            S["khat"] += a * (k_inst - S["khat"])
 
     if scene.cbamp_k_bypass:
         # bypassed: the capacitor holds Vk at the DC operating point; the

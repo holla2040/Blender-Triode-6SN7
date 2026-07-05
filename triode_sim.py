@@ -427,6 +427,16 @@ def _step(scene):
 
     r_all = np.hypot(p[:, 0], p[:, 1])
     cloud = int(np.count_nonzero(al & (r_all < CLOUD_R)))
+    if cloud > CLOUD_CAP and S["ip"] + S.get("ig2", 0.0) < 1.0:
+        # TRUE space-charge lockup: cloud at cap with zero throughput means
+        # emission stays gated (lam *= 1-cf) and the trapped electrons can
+        # never drain past the grid-wire barrier -- the tube latches dead.
+        # Reclaim them into the cathode to break the latch. A full cloud
+        # WITH current flowing is normal space-charge-limited operation and
+        # is deliberately left alone.
+        idx = np.flatnonzero(al & (r_all < CLOUD_R))
+        al[idx[:int(cloud - CLOUD_CAP) + 25]] = False
+        cloud = int(CLOUD_CAP)
     cf = min(cloud / CLOUD_CAP, 1.2)
 
     # --- thermionic emission, throttled by space charge
