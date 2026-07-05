@@ -1,5 +1,8 @@
 # Triode Common-Cathode Amplifier (Blender)
 
+> Lessons 4–6 and 10 of the repo's guided course use this bench:
+> **[LESSONS.md](../LESSONS.md)**.
+
 The [triode simulation](../README.md) wired into a working **resistance-loaded,
 grounded-cathode amplifier stage** — the classic first tube amplifier:
 

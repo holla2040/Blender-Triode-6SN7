@@ -1,5 +1,9 @@
 # Interactive Triode Simulation (Blender)
 
+> **Start here → [LESSONS.md](LESSONS.md)** — a guided 11-lesson path through
+> all three simulations in this repo, from thermionic emission to bias choice
+> and distortion character in audio and guitar amplifier stages.
+
 A physically-motivated teaching model of a vacuum triode: thermionic emission,
 space-charge cloud, grid control and plate extraction — with live sliders and
 cameras inside the tube. Geometry is a stylized 6SN7 internal assembly with

@@ -1,5 +1,8 @@
 # Triode Cathode-Bias Amplifier (Blender) — self-biasing 6SN7 stage
 
+> Lessons 7–9 and 11 of the repo's guided course use this bench:
+> **[LESSONS.md](../LESSONS.md)**.
+
 The [fixed-bias amplifier](../amplifier/README.md) rebuilt the way real
 circuits are actually built: **no bias supply anywhere**. A cathode resistor
 does it.
